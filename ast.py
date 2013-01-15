@@ -3,6 +3,7 @@ from env import Env
 __author__ = 'Donhilion'
 
 UNDEFINED = None
+NO_RETURN = object()
 
 # leaves of the AST
 class Exp(object):
@@ -46,6 +47,7 @@ class Assignment(Exp):
     def eval(self, env):
         if self.variable in env:
             env[self.variable] = self.exp.eval(env)
+            return NO_RETURN
         else:
             raise Exception('Variable %s not defined.' % self.variable.get_name())
 
@@ -62,6 +64,7 @@ class Declaration(Exp):
         if env.directly_defined(self.variable):
             raise Exception('Variable %s already defined.' % self.variable.get_name())
         env.declare(self.variable, self.exp.eval(env))
+        return NO_RETURN
 
     def __str__(self):
         return "Declaration(%s, %s)" % (self.variable, self.exp)
@@ -75,9 +78,9 @@ class IfThenElse(Exp):
 
     def eval(self, env):
         if self.cond.eval(env):
-            self.then.eval(env)
+            return self.then.eval(env)
         elif self.els is not None:
-            self.els.eval(env)
+            return self.els.eval(env)
 
     def __str__(self):
         return "If(%s, %s, %s)" % (self.cond, self.then, self.els)
@@ -90,7 +93,9 @@ class While(Exp):
 
     def eval(self, env):
         while self.cond.eval(env):
-            self.do.eval(env)
+            val = self.do.eval(env)
+            if val is not NO_RETURN:
+                return val
 
     def __str__(self):
         return "While(%s, %s)" % (self.cond, self.do)
@@ -103,7 +108,9 @@ class CmdList(Exp):
     def eval(self, env):
         new_env = Env(env)
         for cmd in self.lst:
-            cmd.eval(new_env)
+            val = cmd.eval(new_env)
+            if val is not NO_RETURN:
+                return val
 
     def __str__(self):
         string = ""
@@ -118,6 +125,7 @@ class Print(Exp):
 
     def eval(self, env):
         print(self.exp.eval(env))
+        return NO_RETURN
 
     def __str__(self):
         return "Print(%s)" % self.exp
@@ -276,3 +284,39 @@ class Ge(Exp):
 
     def __str__(self):
         return "Ge(%s, %s)" % (self.left, self.right)
+
+class Function(Exp):
+
+    def __init__(self, params, cmd):
+        self.params = params
+        self.cmd = cmd
+
+    def eval(self, env):
+        return self
+
+    def call(self, args, env):
+        if len(args) != len(self.params):
+            raise Exception("Invalid count of parameters. Should be %s, is %s."  % (len(self.params), len(args)))
+        new_env = Env(env)
+        values = zip(self.params, args)
+        for val in values:
+            new_env.declare(val[0], val[1])
+        return self.cmd.eval(new_env)
+
+    def __str__(self):
+        return "Function(%s, %s)" % (self.params, self.cmd)
+
+class Call(Exp):
+
+    def __init__(self, function, exp):
+        self.function = function
+        self.exp = exp
+
+    def eval(self, env):
+        arglst = []
+        for exp in self.exp:
+            arglst += exp.eval(env)
+        return self.function.eval(env).call(arglst, env)
+
+    def __str__(self):
+        return "Call(%s, %s)" % (self.function, self.exp)

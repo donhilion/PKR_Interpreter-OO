@@ -2,7 +2,7 @@ from functools import reduce
 from re import VERBOSE
 from funcparserlib.lexer import make_tokenizer, Token
 from funcparserlib.parser import some, a, skip, with_forward_decls, many, maybe
-from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const
+from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call
 from env import Env
 
 __author__ = 'Donhilion'
@@ -25,6 +25,7 @@ def tokenize(string):
         ('Ident', 		(r'[A-Za-z][A-Za-z_0-9]*',)),
         ('Number',      (r'(0|([1-9][0-9]*))', VERBOSE)),
         ('Semicolon',	(';',)),
+        ('Comma',	    (',',)),
         ('Lb',          ('{',)),
         ('Rb',          ('}',)),
         ('Lp',          ('\(',)),
@@ -82,8 +83,11 @@ def parse(seq):
     printexp = with_forward_decls(lambda: ident_('print') + exp >> Print)
     vardef = with_forward_decls(lambda: ident_('var') + toktype('Ident') + op_('=') + exp \
                                         >> unarg(Declaration))
+    arglst = with_forward_decls(lambda: exp + many(skip(toktype('Comma')) + exp) >> lst)
+    call = with_forward_decls(lambda: variable + skip(toktype('Lp')) + arglst + skip(toktype('Rp')) >> unarg(Call))
+    returnexp = with_forward_decls(lambda: ident_('return') + exp)
 
-    cmd = with_forward_decls(lambda: assign | ifexp | whileexp | printexp | vardef | \
+    cmd = with_forward_decls(lambda: call | returnexp | assign | ifexp | whileexp | printexp | vardef | \
                                         skip(toktype('Lb')) + cmd_list + skip(toktype('Rb')))
     cmd_list = (cmd + many(skip(toktype('Semicolon')) + cmd) >> lst) >> CmdList
 
@@ -92,14 +96,18 @@ def parse(seq):
     factor = with_forward_decls(lambda: variable | constexp | \
                                         skip(toktype('Lp')) + exp + skip(toktype('Rp')))
     summand = factor + many(point_op + factor) >> unarg(eval_expr)
-    exp = with_forward_decls(lambda: summand + many(line_op + summand) >> unarg(eval_expr) | \
+    args = toktype('Ident') + many(skip(toktype('Comma')) + toktype('Ident')) >> lst
+    function = ident_('function') + skip(toktype('Lp')) + args + skip(toktype('Rp')) + skip(toktype('Lb')) + cmd_list \
+               + skip(toktype('Rb')) >> unarg(Function)
+
+    exp = with_forward_decls(lambda: function | call | summand + many(line_op + summand) >> unarg(eval_expr) | \
                                         cond)
 
     cond = exp + comp_op + exp >> eval_cond
 
     return cmd.parse(seq)
 
-parsed = parse(tokenize('{ var x = 5; print x }'))
+parsed = parse(tokenize('{ var x = 5; var f = function(a,b){ print a; print b; return 42 ; print 23 }; print x ; var z = f(2,x) ; print z }'))
 print(str(parsed))
 parsed.eval(Env())
 
