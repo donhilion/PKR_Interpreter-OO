@@ -1,9 +1,9 @@
 from functools import reduce
 from re import VERBOSE
-from distorm3 import _Value
 from funcparserlib.lexer import make_tokenizer, Token
 from funcparserlib.parser import some, a, skip, with_forward_decls, many, maybe
-from AST import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const
+from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const
+from env import Env
 
 __author__ = 'Donhilion'
 
@@ -101,5 +101,5 @@ def parse(seq):
 
 parsed = parse(tokenize('{ var x = 5; print x }'))
 print(str(parsed))
-parsed.eval({})
+parsed.eval(Env())
 

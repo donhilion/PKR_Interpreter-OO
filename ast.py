@@ -1,3 +1,5 @@
+from env import Env
+
 __author__ = 'Donhilion'
 
 UNDEFINED = None
@@ -57,9 +59,9 @@ class Declaration(Exp):
         self.exp = exp
 
     def eval(self, env):
-        if self.variable in env:
+        if env.directly_defined(self.variable):
             raise Exception('Variable %s already defined.' % self.variable.get_name())
-        env[self.variable] = self.exp.eval(env)
+        env.declare(self.variable, self.exp.eval(env))
 
     def __str__(self):
         return "Declaration(%s, %s)" % (self.variable, self.exp)
@@ -99,8 +101,9 @@ class CmdList(Exp):
         self.lst = lst
 
     def eval(self, env):
+        new_env = Env(env)
         for cmd in self.lst:
-            cmd.eval(env)
+            cmd.eval(new_env)
 
     def __str__(self):
         string = ""
