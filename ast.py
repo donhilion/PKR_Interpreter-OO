@@ -320,3 +320,26 @@ class Call(Exp):
 
     def __str__(self):
         return "Call(%s, %s)" % (self.function, self.exp)
+
+class Object(Exp):
+
+    def __init__(self, decls):
+        self.decls = decls
+        self.env = {}
+
+    def eval(self, env):
+        new_env = Env(env)
+        for decl in self.decls:
+            decl.eval(new_env)
+        for key in new_env:
+            if new_env.directly_defined(key):
+                self.env[key] = new_env[key]
+
+    def __contains__(self, item):
+        return item in self.env
+
+    def __getitem__(self, item):
+        return self.env[item]
+
+    def __str__(self):
+        return "Object(%s)" % (self.decls)
