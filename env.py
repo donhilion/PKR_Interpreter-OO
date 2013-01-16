@@ -27,5 +27,8 @@ class Env(object):
         else:
             raise Exception("%s is not defined" % key)
 
+    def __iter__(self):
+        return self.dict.__iter__()
+
     def declare(self, key, value):
         self.dict[key] = value

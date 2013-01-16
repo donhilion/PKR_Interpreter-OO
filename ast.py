@@ -14,7 +14,7 @@ class Exp(object):
 class Const(Exp):
 
     def __init__(self, value):
-        self.value = value
+        self.value = int(value)
 
     def eval(self, env):
         return self.value
@@ -49,7 +49,7 @@ class Assignment(Exp):
             env[self.variable] = self.exp.eval(env)
             return NO_RETURN
         else:
-            raise Exception('Variable %s not defined.' % self.variable.get_name())
+            raise Exception('Variable %s not defined.' % self.variable)
 
     def __str__(self):
         return "Assignment(%s, %s)" % (self.variable, self.exp)
@@ -315,7 +315,7 @@ class Call(Exp):
     def eval(self, env):
         arglst = []
         for exp in self.exp:
-            arglst += exp.eval(env)
+            arglst += [exp.eval(env),]
         return self.function.eval(env).call(arglst, env)
 
     def __str__(self):
@@ -334,6 +334,7 @@ class Object(Exp):
         for key in new_env:
             if new_env.directly_defined(key):
                 self.env[key] = new_env[key]
+        return self
 
     def __contains__(self, item):
         return item in self.env
@@ -343,3 +344,15 @@ class Object(Exp):
 
     def __str__(self):
         return "Object(%s)" % (self.decls)
+
+class Dot(Exp):
+
+    def __init__(self, obj, field):
+        self.obj = obj
+        self.field = field
+
+    def eval(self, env):
+        return self.obj.eval(env)[self.field]
+
+    def __str__(self):
+        return "Dot(%s, %s)" % (self.obj, self.field)
