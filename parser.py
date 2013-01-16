@@ -131,7 +131,7 @@ parsed = parse(tokenize('''
             field1 = 15;
             field2 = 23;
             fun = function(x) {
-                return x*x;
+                return x+this.field1;
             };
             o = object {
                 inner = 42;

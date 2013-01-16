@@ -352,7 +352,9 @@ class Dot(Exp):
         self.field = field
 
     def eval(self, env):
-        return self.obj.eval(env)[self.field]
+        obj = self.obj.eval(env)
+        env.declare('this', obj)
+        return obj[self.field]
 
     def __str__(self):
         return "Dot(%s, %s)" % (self.obj, self.field)
