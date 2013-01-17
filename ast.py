@@ -11,6 +11,9 @@ class Exp(object):
     def eval(self, env):
         return UNDEFINED
 
+    def set_this(self, this):
+        pass
+
 class Const(Exp):
 
     def __init__(self, value):
@@ -45,6 +48,8 @@ class Assignment(Exp):
         self.exp = exp
 
     def eval(self, env):
+        if self.variable == 'this':
+            raise Exception('It is not allowed to declare this.')
         if self.variable in env:
             env[self.variable] = self.exp.eval(env)
             return NO_RETURN
@@ -61,6 +66,8 @@ class Declaration(Exp):
         self.exp = exp
 
     def eval(self, env):
+        if self.variable == 'this':
+            raise Exception('It is not allowed to declare this.')
         if env.directly_defined(self.variable):
             raise Exception('Variable %s already defined.' % self.variable.get_name())
         env.declare(self.variable, self.exp.eval(env))
@@ -290,14 +297,19 @@ class Function(Exp):
     def __init__(self, params, cmd):
         self.params = params
         self.cmd = cmd
+        self.this = None
 
     def eval(self, env):
         return self
+
+    def set_this(self, this):
+        self.this = this
 
     def call(self, args, env):
         if len(args) != len(self.params):
             raise Exception("Invalid count of parameters. Should be %s, is %s."  % (len(self.params), len(args)))
         new_env = Env(env)
+        new_env.declare('this', self.this)
         values = zip(self.params, args)
         for val in values:
             new_env.declare(val[0], val[1])
@@ -330,6 +342,7 @@ class Object(Exp):
     def eval(self, env):
         new_env = Env(env)
         for decl in self.decls:
+            decl.exp.set_this(self)
             decl.eval(new_env)
         for key in new_env:
             if new_env.directly_defined(key):
@@ -353,7 +366,6 @@ class Dot(Exp):
 
     def eval(self, env):
         obj = self.obj.eval(env)
-        env.declare('this', obj)
         return obj[self.field]
 
     def __str__(self):
