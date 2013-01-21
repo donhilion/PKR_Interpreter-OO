@@ -2,7 +2,7 @@ from functools import reduce
 from re import VERBOSE
 from funcparserlib.lexer import make_tokenizer, Token
 from funcparserlib.parser import some, a, skip, with_forward_decls, many, maybe
-from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call, Object, Dot
+from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call, Object, Dot, Class, New
 from env import Env
 
 __author__ = 'Donhilion'
@@ -86,27 +86,33 @@ def parse(seq):
                                         >> unarg(Declaration))
     arglst = with_forward_decls(lambda: exp + many(skip(toktype('Comma')) + exp) >> lst)
     returnexp = with_forward_decls(lambda: ident_('return') + exp)
-    call = with_forward_decls(lambda: dot + skip(toktype('Lp')) + arglst + skip(toktype('Rp')) >> unarg(Call))
+    call = with_forward_decls(lambda: dot + skip(toktype('Lp') + toktype('Rp')) >> unarg(Call) | \
+                                      dot + skip(toktype('Lp')) + arglst + skip(toktype('Rp')) >> unarg(Call))
+    args = toktype('Ident') + many(skip(toktype('Comma')) + toktype('Ident')) >> lst
+    decl = with_forward_decls(lambda: toktype('Ident') + op_('=') + exp >> unarg(Declaration))
+    decls = decl + many(skip(toktype('Semicolon')) + decl) >> lst
+    classdecl = ident_('class') + toktype('Ident') + op_('=') + skip(toktype('Lp')) + args + skip(toktype('Rp')) \
+                + skip(toktype('Lp')) + maybe(toktype('Ident')) + skip(toktype('Rp') + \
+                toktype('Lb')) + decls + skip(toktype('Rb')) >> unarg(Class)
+    newexp = ident_('new') + toktype('Ident') + skip(toktype('Lp') + toktype('Rp')) >> New | \
+             ident_('new') + toktype('Ident') + skip(toktype('Lp')) + arglst + skip(toktype('Rp')) >> New
 
-    cmd = with_forward_decls(lambda: call | returnexp | assign | ifexp | whileexp | printexp | vardef | \
+    cmd = with_forward_decls(lambda: call | returnexp | assign | ifexp | whileexp | printexp | vardef | classdecl | \
                                         skip(toktype('Lb')) + cmd_list + skip(toktype('Rb')))
     cmd_list = (cmd + many(skip(toktype('Semicolon')) + cmd) >> lst) >> CmdList
 
     variable = toktype('Ident') >> Variable
     dotop = toktype('Dot') >> const(Dot)
-    dot = variable + many(dotop + toktype('Ident')) >> unarg(eval_expr)
+    dot = newexp  + many(dotop + toktype('Ident')) >> unarg(eval_expr) | variable  + many(dotop + toktype('Ident')) >> unarg(eval_expr)
     constexp = toktype('Number') >> Const
     factor = with_forward_decls(lambda: dot | constexp | \
                                         skip(toktype('Lp')) + exp + skip(toktype('Rp')))
     summand = factor + many(point_op + factor) >> unarg(eval_expr)
-    args = toktype('Ident') + many(skip(toktype('Comma')) + toktype('Ident')) >> lst
     function = ident_('function') + skip(toktype('Lp')) + args + skip(toktype('Rp')) + skip(toktype('Lb')) + cmd_list \
                + skip(toktype('Rb')) >> unarg(Function)
-    decl = with_forward_decls(lambda: toktype('Ident') + op_('=') + exp >> unarg(Declaration))
-    decls = decl + many(skip(toktype('Semicolon')) + decl) >> lst
     objectexp = ident_('object') + skip(toktype('Lb')) + decls + skip(toktype('Rb')) >> Object
 
-    exp = with_forward_decls(lambda: objectexp | function | call | \
+    exp = with_forward_decls(lambda: objectexp | function | call | newexp | \
                                      summand + many(line_op + summand) >> unarg(eval_expr) | cond)
 
     cond = exp + comp_op + exp >> eval_cond
@@ -140,7 +146,13 @@ parsed = parse(tokenize('''
         print o.field1;
         print o.fun(4);
         print o.o.inner;
+
+        class foo = (a, b)() {
+            foo = a;
+            bar = b;
+        };
+
+        var obj = new foo(1, 2);
     }'''))
 print(str(parsed))
 parsed.eval(Env())
-

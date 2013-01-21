@@ -320,7 +320,10 @@ class Function(Exp):
 
 class Call(Exp):
 
-    def __init__(self, function, exp):
+    def __init__(self, function, exp=None):
+        if exp is None:
+            exp = []
+
         self.function = function
         self.exp = exp
 
@@ -370,3 +373,50 @@ class Dot(Exp):
 
     def __str__(self):
         return "Dot(%s, %s)" % (self.obj, self.field)
+
+class Class(Exp):
+
+    def __init__(self, name, args, super, decls):
+        self.name = name
+        self.args = args
+        self.super = super
+        self.decls = decls
+
+    def eval(self, env):
+        if self.super is not None and self.super not in env:
+            raise Exception("Superclass %s not found." % self.super)
+        env.declare(self.name, self)
+
+    def create_instance(self, env, args):
+        if len(args) != len(self.args):
+            raise Exception("Invalid number of arguments while creating %s." % self.name)
+        new_env = Env(env)
+#        if self.super is not None:
+#            new_env.declare("super", self.super)
+        arg_lst = zip(self.args, args)
+        for arg in arg_lst:
+            new_env.declare(arg[0], arg[1])
+        o = Object(self.decls)
+        return o.eval(new_env)
+
+    def __str__(self):
+        return "Class(%s, %s, %s, %s)" % (self.name, self.args, self.super, self.decls)
+
+class New(Exp):
+
+    def __init__(self, name, args=None):
+        if args is None:
+            args = []
+
+        self.name = name
+        self.args = args
+
+    def eval(self, env):
+        if self.name not in env: # seems to be not called
+            raise Exception("Class %s is not defined." % self.name)
+        clazz = env[self.name]
+        return clazz.create_instance(env, self.args)
+
+
+    def __str__(self):
+        return "New(%s, %s)" % (self.name, self.args)
