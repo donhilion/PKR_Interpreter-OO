@@ -119,7 +119,15 @@ def parse(seq):
 
     return cmd.parse(seq)
 
-parsed = parse(tokenize('''
+def interpret(code, print_ast=False):
+    ast = parse(tokenize(code))
+    if print_ast:
+        print(ast)
+    env = Env()
+    env.declare("alloc", Alloc())
+    ast.eval(env)
+
+interpret('''
     {
         var x = 5;
         var f =
@@ -146,13 +154,9 @@ parsed = parse(tokenize('''
         print o.field1;
         print o.fun(4);
         print o.o.inner;
-    }'''))
-print(str(parsed))
-env = Env()
-env.declare("alloc", Alloc())
-parsed.eval(env)
+    }''')
 
-parsed = parse(tokenize('''
+interpret('''
     {
         var m = alloc();
         *m := 42;
@@ -160,6 +164,4 @@ parsed = parse(tokenize('''
         print *m;
         var string = "Test";
         print string;
-    }'''))
-print(str(parsed))
-parsed.eval(env)
+    }''', True)
