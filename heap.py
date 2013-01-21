@@ -9,8 +9,8 @@ class Heap(object):
     def alloc(self):
         if len(self.free) > 0:
             return self.free.pop()
-        addr = len(self.memory)
-        self.memory[addr] = None
+        self.memory.append(None)
+        addr = len(self.memory)-1
         return addr
 
     def free(self, addr):

@@ -4,6 +4,7 @@ from funcparserlib.lexer import make_tokenizer, Token
 from funcparserlib.parser import some, a, skip, with_forward_decls, many, maybe
 from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call, Object, Dot
 from env import Env
+from functions import Alloc
 
 __author__ = 'Donhilion'
 
@@ -86,7 +87,7 @@ def parse(seq):
                                         >> unarg(Declaration))
     arglst = with_forward_decls(lambda: exp + many(skip(toktype('Comma')) + exp) >> lst)
     returnexp = with_forward_decls(lambda: ident_('return') + exp)
-    call = with_forward_decls(lambda: dot + skip(toktype('Lp') + toktype('Rp')) >> unarg(Call) | \
+    call = with_forward_decls(lambda: dot + skip(toktype('Lp') + toktype('Rp')) >> Call | \
                                       dot + skip(toktype('Lp')) + arglst + skip(toktype('Rp')) >> unarg(Call))
     args = toktype('Ident') + many(skip(toktype('Comma')) + toktype('Ident')) >> lst
     decl = with_forward_decls(lambda: toktype('Ident') + op_('=') + exp >> unarg(Declaration))
@@ -141,6 +142,9 @@ parsed = parse(tokenize('''
         print o.field1;
         print o.fun(4);
         print o.o.inner;
+        var m = alloc();
     }'''))
 print(str(parsed))
-parsed.eval(Env())
+env = Env()
+env.declare("alloc", Alloc())
+parsed.eval(env)
