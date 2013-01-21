@@ -1,4 +1,5 @@
 from env import Env
+from heap import heap
 
 __author__ = 'Donhilion'
 
@@ -373,3 +374,31 @@ class Dot(Exp):
 
     def __str__(self):
         return "Dot(%s, %s)" % (self.obj, self.field)
+
+class Pointer(Exp):
+
+    def __init__(self, var):
+        self.var = var
+
+    def eval(self, env):
+        return heap[self.var.eval(env)]
+
+    def get_addr(self, env):
+        return self.var.eval(env)
+
+    def __str__(self):
+        return "Pointer(%s)" % self.var
+
+class HeapAssign(Exp):
+
+    def __init__(self, variable, exp):
+        self.variable = variable
+        self.exp = exp
+
+    def eval(self, env):
+        addr = self.variable.get_addr(env)
+        heap[addr] = self.exp.eval(env)
+        return NO_RETURN
+
+    def __str__(self):
+        return "HeapAssign(%s, %s)" % (self.variable, self.exp)

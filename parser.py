@@ -2,7 +2,7 @@ from functools import reduce
 from re import VERBOSE
 from funcparserlib.lexer import make_tokenizer, Token
 from funcparserlib.parser import some, a, skip, with_forward_decls, many, maybe
-from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call, Object, Dot
+from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call, Object, Dot, Pointer, HeapAssign
 from env import Env
 from functions import Alloc
 
@@ -78,6 +78,7 @@ def parse(seq):
     line_op = add | sub
     comp_op = lt | gt | eq | orop | andop | neq | notop | le | ge
 
+    heap_assign = with_forward_decls(lambda: pointer + skip(toktype('Assign')) + exp >> unarg(HeapAssign))
     assign = with_forward_decls(lambda: toktype('Ident') + skip(toktype('Assign')) + exp >> unarg(Assignment))
     ifexp = with_forward_decls(lambda: ident_('if') + cond + cmd + \
                                        maybe(ident_('else') + cmd) >> unarg(IfThenElse))
@@ -93,15 +94,16 @@ def parse(seq):
     decl = with_forward_decls(lambda: toktype('Ident') + op_('=') + exp >> unarg(Declaration))
     decls = decl + many(skip(toktype('Semicolon')) + decl) >> lst
 
-    cmd = with_forward_decls(lambda: call | returnexp | assign | ifexp | whileexp | printexp | vardef | \
+    cmd = with_forward_decls(lambda: call | returnexp | assign | ifexp | whileexp | printexp | vardef | heap_assign | \
                                         skip(toktype('Lb')) + cmd_list + skip(toktype('Rb')))
     cmd_list = (cmd + many(skip(toktype('Semicolon')) + cmd) >> lst) >> CmdList
 
     variable = toktype('Ident') >> Variable
     dotop = toktype('Dot') >> const(Dot)
     dot = variable  + many(dotop + toktype('Ident')) >> unarg(eval_expr)
+    pointer = with_forward_decls(lambda: op_('*') + exp >> Pointer)
     constexp = toktype('Number') >> Const
-    factor = with_forward_decls(lambda: dot | constexp | \
+    factor = with_forward_decls(lambda: dot | constexp | pointer | \
                                         skip(toktype('Lp')) + exp + skip(toktype('Rp')))
     summand = factor + many(point_op + factor) >> unarg(eval_expr)
     function = ident_('function') + skip(toktype('Lp')) + args + skip(toktype('Rp')) + skip(toktype('Lb')) + cmd_list \
@@ -142,9 +144,18 @@ parsed = parse(tokenize('''
         print o.field1;
         print o.fun(4);
         print o.o.inner;
-        var m = alloc();
     }'''))
 print(str(parsed))
 env = Env()
 env.declare("alloc", Alloc())
+parsed.eval(env)
+
+parsed = parse(tokenize('''
+    {
+        var m = alloc();
+        *m := 42;
+        print m;
+        print *m;
+    }'''))
+print(str(parsed))
 parsed.eval(env)
