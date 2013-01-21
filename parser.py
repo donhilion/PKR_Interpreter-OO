@@ -2,7 +2,7 @@ from functools import reduce
 from re import VERBOSE
 from funcparserlib.lexer import make_tokenizer, Token
 from funcparserlib.parser import some, a, skip, with_forward_decls, many, maybe
-from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call, Object, Dot, Pointer, HeapAssign
+from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call, Object, Dot, Pointer, HeapAssign, String
 from env import Env
 from functions import Alloc
 
@@ -32,6 +32,7 @@ def tokenize(string):
         ('Rb',          ('}',)),
         ('Lp',          ('\(',)),
         ('Rp',          ('\)',)),
+        ('String',      ('"[^"]*"',)),
         ]
     useless = ['Space']
     t = make_tokenizer(specs)
@@ -103,7 +104,8 @@ def parse(seq):
     dot = variable  + many(dotop + toktype('Ident')) >> unarg(eval_expr)
     pointer = with_forward_decls(lambda: op_('*') + exp >> Pointer)
     constexp = toktype('Number') >> Const
-    factor = with_forward_decls(lambda: dot | constexp | pointer | \
+    string = toktype('String') >> String
+    factor = with_forward_decls(lambda: dot | constexp | pointer | string | \
                                         skip(toktype('Lp')) + exp + skip(toktype('Rp')))
     summand = factor + many(point_op + factor) >> unarg(eval_expr)
     function = ident_('function') + skip(toktype('Lp')) + args + skip(toktype('Rp')) + skip(toktype('Lb')) + cmd_list \
@@ -156,6 +158,8 @@ parsed = parse(tokenize('''
         *m := 42;
         print m;
         print *m;
+        var string = "Test";
+        print string;
     }'''))
 print(str(parsed))
 parsed.eval(env)

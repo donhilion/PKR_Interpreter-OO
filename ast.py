@@ -402,3 +402,14 @@ class HeapAssign(Exp):
 
     def __str__(self):
         return "HeapAssign(%s, %s)" % (self.variable, self.exp)
+
+class String(Exp):
+
+    def __init__(self, str):
+        self.str = str[1:-1]
+
+    def eval(self, env):
+        return self.str
+
+    def __str__(self):
+        return "String(%s)" % self.str
