@@ -5,6 +5,7 @@ from funcparserlib.parser import some, a, skip, with_forward_decls, many, maybe
 from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call, Object, Dot, Pointer, HeapAssign, String
 from env import Env
 from functions import Alloc
+from programs import diverses, heap_and_string, fibonacci
 
 __author__ = 'Donhilion'
 
@@ -79,6 +80,8 @@ def parse(seq):
     line_op = add | sub
     comp_op = lt | gt | eq | orop | andop | neq | notop | le | ge
 
+    empty_fun = lambda x: ()
+
     heap_assign = with_forward_decls(lambda: pointer + skip(toktype('Assign')) + exp >> unarg(HeapAssign))
     assign = with_forward_decls(lambda: toktype('Ident') + skip(toktype('Assign')) + exp >> unarg(Assignment))
     ifexp = with_forward_decls(lambda: ident_('if') + cond + cmd + \
@@ -108,7 +111,8 @@ def parse(seq):
     factor = with_forward_decls(lambda: dot | constexp | pointer | string | \
                                         skip(toktype('Lp')) + exp + skip(toktype('Rp')))
     summand = factor + many(point_op + factor) >> unarg(eval_expr)
-    function = ident_('function') + skip(toktype('Lp')) + args + skip(toktype('Rp')) + skip(toktype('Lb')) + cmd_list \
+    function = ident_('function') + (skip(toktype('Lp')) +  skip(toktype('Rp')) >> empty_fun | \
+                skip(toktype('Lp')) + args + skip(toktype('Rp'))) + skip(toktype('Lb')) + cmd_list \
                + skip(toktype('Rb')) >> unarg(Function)
     objectexp = ident_('object') + skip(toktype('Lb')) + decls + skip(toktype('Rb')) >> Object
 
@@ -127,41 +131,8 @@ def interpret(code, print_ast=False):
     env.declare("alloc", Alloc())
     ast.eval(env)
 
-interpret('''
-    {
-        var x = 5;
-        var f =
-            function(a,b) {
-                print a;
-                print b;
-                return 42;
-                print 23
-            };
-        print x;
-        var z = f(2,x);
-        print z;
+interpret(diverses)
 
-        var o = object {
-            field1 = 15;
-            field2 = 23;
-            fun = function(x) {
-                return x+this.field1;
-            };
-            o = object {
-                inner = 42;
-            };
-        };
-        print o.field1;
-        print o.fun(4);
-        print o.o.inner;
-    }''')
+interpret(heap_and_string, True)
 
-interpret('''
-    {
-        var m = alloc();
-        *m := 42;
-        print m;
-        print *m;
-        var string = "Test";
-        print string;
-    }''', True)
+interpret(fibonacci)

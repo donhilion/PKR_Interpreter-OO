@@ -104,6 +104,7 @@ class While(Exp):
             val = self.do.eval(env)
             if val is not NO_RETURN:
                 return val
+        return NO_RETURN
 
     def __str__(self):
         return "While(%s, %s)" % (self.cond, self.do)
@@ -119,6 +120,7 @@ class CmdList(Exp):
             val = cmd.eval(new_env)
             if val is not NO_RETURN:
                 return val
+        return NO_RETURN
 
     def __str__(self):
         string = ""
@@ -299,8 +301,12 @@ class Function(Exp):
         self.params = params
         self.cmd = cmd
         self.this = None
+        self.env = None
 
     def eval(self, env):
+        if self.env is None:
+            self.env = Env(env)
+            self.env.declare('this', self.this)
         return self
 
     def set_this(self, this):
@@ -309,8 +315,7 @@ class Function(Exp):
     def call(self, args, env):
         if len(args) != len(self.params):
             raise Exception("Invalid count of parameters. Should be %s, is %s."  % (len(self.params), len(args)))
-        new_env = Env(env)
-        new_env.declare('this', self.this)
+        new_env = Env(self.env)
         values = zip(self.params, args)
         for val in values:
             new_env.declare(val[0], val[1])
@@ -345,13 +350,17 @@ class Object(Exp):
 
     def eval(self, env):
         new_env = Env(env)
+        # put object in heap
+        addr = heap.alloc()
+        heap[addr] = self
+
         for decl in self.decls:
-            decl.exp.set_this(self)
+            decl.exp.set_this(addr)
             decl.eval(new_env)
         for key in new_env:
             if new_env.directly_defined(key):
                 self.env[key] = new_env[key]
-        return self
+        return addr
 
     def __contains__(self, item):
         return item in self.env
@@ -369,7 +378,8 @@ class Dot(Exp):
         self.field = field
 
     def eval(self, env):
-        obj = self.obj.eval(env)
+        addr = self.obj.eval(env)
+        obj = heap[addr]
         return obj[self.field]
 
     def __str__(self):
