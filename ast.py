@@ -176,6 +176,18 @@ class Mul(Exp):
     def __str__(self):
         return "Mul(%s, %s)" % (self.left, self.right)
 
+class Mod(Exp):
+
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+    def eval(self, env):
+        return self.left.eval(env) % self.right.eval(env)
+
+    def __str__(self):
+        return "Mod(%s, %s)" % (self.left, self.right)
+
 class Div(Exp):
 
     def __init__(self, left, right):

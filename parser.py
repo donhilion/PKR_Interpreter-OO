@@ -2,7 +2,7 @@ from functools import reduce
 from re import VERBOSE
 from funcparserlib.lexer import make_tokenizer, Token
 from funcparserlib.parser import some, a, skip, with_forward_decls, many, maybe
-from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call, Object, Dot, Pointer, HeapAssign, String
+from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call, Object, Dot, Pointer, HeapAssign, String, Mod
 from env import Env
 from functions import Alloc
 from programs import diverses, heap_and_string, fibonacci
@@ -24,7 +24,7 @@ def tokenize(string):
         ('Le',          ('<=',)),
         ('Ge',          ('>=',)),
         ('Dot',         ('\.',)),
-        ('Op',          (r'[\-+/*=<>]',)),
+        ('Op',          (r'[\-+/*=<>%]',)),
         ('Ident', 		(r'[A-Za-z][A-Za-z_0-9]*',)),
         ('Number',      (r'(0|([1-9][0-9]*))', VERBOSE)),
         ('Semicolon',	(';',)),
@@ -65,6 +65,7 @@ def parse(seq):
     sub = makeop('-', Sub)
     mul = makeop('*', Mul)
     div = makeop('/', Div)
+    mul = makeop('%', Mod)
 
     lt = makeop('<', Lt)
     gt = makeop('>', Gt)
