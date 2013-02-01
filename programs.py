@@ -61,3 +61,11 @@ fibonacci = '''
         print fib(5);
     }
     '''
+
+read_line = '''
+    {
+        print "Geben Sie etwas ein";
+        var input = readline();
+        var output = "Hallo " + input;
+        print output;
+    }'''

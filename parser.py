@@ -4,8 +4,8 @@ from funcparserlib.lexer import make_tokenizer, Token
 from funcparserlib.parser import some, a, skip, with_forward_decls, many, maybe
 from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call, Object, Dot, Pointer, HeapAssign, String, Mod
 from env import Env
-from functions import Alloc
-from programs import diverses, heap_and_string, fibonacci
+from functions import Alloc, ReadLine
+from programs import diverses, heap_and_string, fibonacci, read_line
 
 __author__ = 'Donhilion'
 
@@ -130,6 +130,7 @@ def interpret(code, print_ast=False):
         print(ast)
     env = Env()
     env.declare("alloc", Alloc())
+    env.declare("readline", ReadLine())
     ast.eval(env)
 
 interpret(diverses)
@@ -137,3 +138,5 @@ interpret(diverses)
 interpret(heap_and_string, True)
 
 interpret(fibonacci)
+
+interpret(read_line, True)
