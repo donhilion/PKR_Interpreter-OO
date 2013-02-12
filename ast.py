@@ -51,6 +51,10 @@ class Assignment(Exp):
     def eval(self, env):
         if self.variable == 'this':
             raise Exception('It is not allowed to declare this.')
+        if self.variable == 'true':
+            raise Exception('It is not allowed to declare this.')
+        if self.variable == 'false':
+            raise Exception('It is not allowed to declare this.')
         if self.variable in env:
             env[self.variable] = self.exp.eval(env)
             return NO_RETURN
@@ -89,6 +93,7 @@ class IfThenElse(Exp):
             return self.then.eval(env)
         elif self.els is not None:
             return self.els.eval(env)
+        return NO_RETURN
 
     def __str__(self):
         return "If(%s, %s, %s)" % (self.cond, self.then, self.els)

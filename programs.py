@@ -69,3 +69,33 @@ read_line = '''
         var output = "Hallo " + input;
         print output;
     }'''
+
+prim = '''
+    {
+        var number = 23;
+        var isprim = function(x) {
+            if x % 2 == 0 {
+                return false;
+            };
+            var isprim = true;
+            var i = 3;
+            while i <= x/2 && isprim == true {
+                if x % i == 0 {
+                    isprim := false;
+                };
+                i := i + 1;
+            };
+            return isprim;
+        };
+        var erg = isprim(number);
+        print erg;
+    }'''
+
+iftest = '''
+    {
+        if 1 == 1 || 2 == 1 {
+            print "Ja";
+        } else {
+            print "Nein";
+        }
+    }'''

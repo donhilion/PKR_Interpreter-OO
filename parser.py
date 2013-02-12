@@ -5,7 +5,7 @@ from funcparserlib.parser import some, a, skip, with_forward_decls, many, maybe
 from ast import Add, Sub, Mul, Div, Lt, Gt, Eq, Or, And, Neq, Not, Le, Ge, Assignment, IfThenElse, While, Print, Declaration, CmdList, Variable, Const, Function, Call, Object, Dot, Pointer, HeapAssign, String, Mod
 from env import Env
 from functions import Alloc, ReadLine
-from programs import diverses, heap_and_string, fibonacci, read_line
+from programs import diverses, heap_and_string, fibonacci, read_line, prim, iftest
 
 __author__ = 'Donhilion'
 
@@ -65,7 +65,7 @@ def parse(seq):
     sub = makeop('-', Sub)
     mul = makeop('*', Mul)
     div = makeop('/', Div)
-    mul = makeop('%', Mod)
+    mod = makeop('%', Mod)
 
     lt = makeop('<', Lt)
     gt = makeop('>', Gt)
@@ -77,9 +77,10 @@ def parse(seq):
     le = toktype('Le') >> const(Le)
     ge = toktype('Ge') >> const(Ge)
 
-    point_op = mul | div
+    point_op = mul | div | mod
     line_op = add | sub
-    comp_op = lt | gt | eq | orop | andop | neq | notop | le | ge
+    comp_op = lt | gt | eq | neq | notop | le | ge
+    combinator = orop | andop
 
     empty_fun = lambda x: ()
 
@@ -120,7 +121,7 @@ def parse(seq):
     exp = with_forward_decls(lambda: objectexp | function | call | \
                                      summand + many(line_op + summand) >> unarg(eval_expr) | cond)
 
-    cond = exp + comp_op + exp >> eval_cond
+    cond = (exp + comp_op + exp >> eval_cond) + many(combinator + (exp + comp_op + exp >> eval_cond)) >> unarg(eval_expr)
 
     return cmd.parse(seq)
 
@@ -131,12 +132,18 @@ def interpret(code, print_ast=False):
     env = Env()
     env.declare("alloc", Alloc())
     env.declare("readline", ReadLine())
+    env.declare("true", 1)
+    env.declare("false", 0)
     ast.eval(env)
 
-interpret(diverses)
+#interpret(diverses)
+#
+#interpret(heap_and_string, True)
+#
+#interpret(fibonacci)
+#
+interpret(prim)
 
-interpret(heap_and_string, True)
+#interpret(iftest)
 
-interpret(fibonacci)
-
-interpret(read_line, True)
+#interpret(read_line, True)
